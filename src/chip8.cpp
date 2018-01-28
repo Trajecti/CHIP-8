@@ -1,5 +1,5 @@
 #include "chip8.h"
-#include <iostream>
+#include <cstdlib>
 
 int main() {
   Chip8 test;
@@ -20,7 +20,7 @@ void Chip8::initialize() {
   for (int i = 0; i < MEM_SIZE; ++i) {
     memory[i] = 0;
     if (i < NUM_PIXELS) {
-      gfx[i] = 0;
+      gfx[i%COL_PIXELS][i/COL_PIXELS] = 0;
     }
     if (i < NUM_REGISTERS) {
       V[i] = 0;
@@ -60,18 +60,23 @@ void Chip8::emulateCycle() {
   opcode = memory[pc] << 8 | memory[pc + 1];
   opFunc opcode_function = opcode_to_instr_fn_map[decodeOpcode(opcode)];
   (this->*opcode_function)(opcode);
+  pc += 2;
 }
 
 void Chip8::clearScreen(unsigned short) {
-  for (int i = 0; i < NUM_PIXELS; ++i) {
-      gfx[i] = 0;
+  for (int y = 0; y < ROW_PIXELS; ++y) {
+    for (int x = 0; x < COL_PIXELS; ++x) {
+      gfx[x][y] = 0;
+    }
   }
+  return;
 }
 
 void Chip8::returnFromSubroutine(unsigned short) {
     pc = c_stack.front();
     c_stack.pop_front();
     --sp;
+    return;
 }
 
 
@@ -93,17 +98,130 @@ void Chip8::callAddress(unsigned short opcode) {
 //  if 0x4000, skip if not equal. If 0x5000, compare two
 //   registers and skip if equal.
 void Chip8::skip(unsigned short opcode) {
-    unsigned short register1 = opcode & 0x0F00 >> 2;
-    unsigned short register2 = opcode & 0x00F0 >> 1;
+    unsigned short register1 = opcode & 0x0F00 >> 8;
+    unsigned short register2 = opcode & 0x00F0 >> 4;
     unsigned short value = opcode & 0x00FF;
-    bool skipIfEqual = ((opcode & 0xF000) == 0x3000);
-    bool compareRegisters = ((opcode & 0xF000) == 0x5000);
-    if (compareRegisters && (V[register1] == V[register2])) {
-        pc+=2;
-    } else if ((skipIfEqual && value == V[register1])
-        || (!skipIfEqual && value != V[register1])) {
-        pc+=2;
+
+    unsigned short leading_opcode = opcode & 0xF000;
+    bool registers_equal = (V[register1] == V[register2]);
+    bool register_and_val_equal = (V[register1] == value);
+    switch (leading_opcode) {
+    case 0x3000:
+        pc += (2 * register_and_val_equal);
+        return;
+    case 0x4000:
+        pc += (2 * !register_and_val_equal);
+        return;
+    case 0x5000:
+        pc += (2 * registers_equal);
+        return;
+    case 0x9000:
+        pc += (2 * !registers_equal);
+        return;
     }
     return;
 }
 
+void Chip8::loadToMemory(unsigned short opcode) {
+    unsigned short register1 = opcode & 0x0F00 >> 4;
+    unsigned short value = opcode & 0x00FF;
+    V[register1] = value;
+    return;
+}
+
+void Chip8::addToRegister(unsigned short opcode) {
+    unsigned short register1 = opcode & 0x0F00 >> 8;
+    unsigned short value = opcode & 0x00FF;
+    V[register1] += value;
+    return;
+}
+
+void Chip8::arithmeticalOperations(unsigned short opcode) {
+    unsigned short register1 = opcode & 0x0F00 >> 8;
+    unsigned short register2 = opcode & 0x00F0 >> 4;
+    unsigned short op = opcode & 0x000F;
+    enum Operations {ASSIGN,OR,AND,XOR,ADD,SUB,SHR,SUBN,SHL};
+    switch(op) {
+      case ASSIGN:
+        V[register1] = V[register2];
+        return;
+      case OR:
+        V[register1] = V[register1] | V[register2];
+        return;
+     case AND:
+        V[register1] = V[register1] & V[register2];
+        return;
+     case XOR:
+        V[register1] = V[register1] ^ V[register2];
+        return;
+     case ADD: {
+        unsigned short temp = V[register1] + V[register2];
+        V[CARRY_REGISTER] = (temp > 255); // 255 is the max integer for 8 bits
+        V[register1] = temp & 0xFFFF;
+        return; }
+     case SUB:
+         V[CARRY_REGISTER] = (V[register1] > V[register2]);
+         V[register1] = V[register1] - V[register2];
+         return;
+     case SHR:
+        V[CARRY_REGISTER] = ((V[register1] & 0x0001) == 0x0001);
+        V[register1] = V[register1] / 2;
+        return;
+     case SUBN:
+         V[CARRY_REGISTER] = (V[register2] > V[register1]);
+         V[register1] = V[register2] - V[register1];
+         return;
+     case SHL:
+        V[CARRY_REGISTER] = ((V[register1] & 0x8000) == 0x8000);
+        V[register1] = V[register1] * 2;
+        return;
+    default:
+        return;
+    };
+}
+
+void Chip8::setRegisterI(unsigned short opcode) {
+    unsigned short value = opcode & 0x0FFF;
+    idx_register = value;
+    return;
+}
+
+void Chip8::jumpLinkRegister(unsigned short opcode) {
+    unsigned short value = opcode & 0x0FFF;
+    pc  = value + V[0];
+    return;
+};
+
+void Chip8::rand(unsigned short opcode) {
+    unsigned short register1 = opcode & 0x0F00 >> 8;
+    unsigned short value = opcode & 0x00FF;
+    unsigned short rand_var = std::rand() & 0xFFFF;
+    V[register1] = value & rand_var;
+    return;
+}
+
+void Chip8::draw(unsigned short opcode) {
+    unsigned short register1 = opcode & 0x0F00 >> 8;
+    unsigned short register2 = opcode & 0x00F0 >> 4;
+    unsigned short height = opcode & 0x000F;
+    unsigned short x_coord = V[register1];
+    unsigned short y_coord = V[register2];
+    unsigned short sprite_pixel, curr_bit,curr_x,curr_y;
+    V[CARRY_REGISTER] = 0;
+
+    for (int y = 0; y < height; ++y) {
+        sprite_pixel = memory[idx_register + y];
+        for (int x = 0; x < SPRITE_WIDTH; ++x) {
+            curr_bit = 0x0080 >> x;
+            if ((sprite_pixel & curr_bit) == 1) {
+                curr_x = (x+x_coord)%COL_PIXELS;
+                curr_y = (y+y_coord)%ROW_PIXELS;
+                if (gfx[curr_x][curr_y] == 1) {
+                    V[CARRY_REGISTER] = 1;
+                }
+                gfx[curr_x][curr_y] ^= 1;
+            }
+        }
+    }
+    drawFlag = true;
+}

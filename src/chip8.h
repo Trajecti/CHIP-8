@@ -35,13 +35,15 @@ class Chip8 {
   // The CHIP-8 has 16 8 bit CPU registers with the
   //  last used for the carry operation.
   const static short NUM_REGISTERS = 15;
+  const static short CARRY_REGISTER = 15;
   unsigned char V[NUM_REGISTERS];
 
   // Black and white graphics on a 64x32 pixel screen
   const static short ROW_PIXELS = 64;
   const static short COL_PIXELS = 32;
   const static short NUM_PIXELS = ROW_PIXELS * COL_PIXELS;
-  unsigned char gfx[NUM_PIXELS];
+  const static short SPRITE_WIDTH = 8;
+  unsigned char gfx[COL_PIXELS][ROW_PIXELS];
 
   // The CHIP-8 has two timer registers at 60Hz that
   // count down to zero when set above zero
@@ -66,6 +68,13 @@ class Chip8 {
   void jumpAddress(unsigned short opcode);
   void callAddress(unsigned short opcode);
   void skip(unsigned short opcode);
+  void loadToMemory(unsigned short opcode);
+  void addToRegister(unsigned short opcode);
+  void arithmeticalOperations(unsigned short opcode);
+  void setRegisterI(unsigned short opcode);
+  void jumpLinkRegister(unsigned short opcode);
+  void rand(unsigned short opcode);
+  void draw(unsigned short opcode);
 
   std::map<unsigned short, opFunc> opcode_to_instr_fn_map = {
       {0x00E0, &Chip8::clearScreen},
@@ -75,6 +84,14 @@ class Chip8 {
       {0x3000, &Chip8::skip},
       {0x4000, &Chip8::skip},
       {0x5000, &Chip8::skip},
+      {0x6000, &Chip8::loadToMemory},
+      {0x7000, &Chip8::addToRegister},
+      {0x8000, &Chip8::arithmeticalOperations},
+      {0x9000, &Chip8::skip},
+      {0xA000, &Chip8::setRegisterI},
+      {0xB000, &Chip8::jumpLinkRegister},
+      {0xC000, &Chip8::rand},
+      {0xD000, &Chip8::draw},
     };
 };
 
