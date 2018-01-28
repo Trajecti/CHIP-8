@@ -1,6 +1,7 @@
 #ifndef CHIP8_H
 #define CHIP8_H
 #include <map>
+#include <set>
 #include <deque>
 
 class Chip8;
@@ -75,6 +76,15 @@ class Chip8 {
   void jumpLinkRegister(unsigned short opcode);
   void rand(unsigned short opcode);
   void draw(unsigned short opcode);
+  void skipOnKeyPress(unsigned short opcode);
+  void storeKeyPressVal(unsigned short opcode);
+  void getDelayTimer(unsigned short opcode);
+  void setTimer(unsigned short opcode);
+  void addToIndex(unsigned short opcode);
+  void setIndexToSprite(unsigned short opcode);
+  void storeDecimal(unsigned short opcode);
+  void writeToMemory(unsigned short opcode);
+  void readToMemory(unsigned short opcode);
 
   std::map<unsigned short, opFunc> opcode_to_instr_fn_map = {
       {0x00E0, &Chip8::clearScreen},
@@ -92,6 +102,24 @@ class Chip8 {
       {0xB000, &Chip8::jumpLinkRegister},
       {0xC000, &Chip8::rand},
       {0xD000, &Chip8::draw},
+      {0xE09E, &Chip8::skipOnKeyPress},
+      {0xE0A1, &Chip8::skipOnKeyPress},
+      {0xF007, &Chip8::getDelayTimer},
+      {0xF00A, &Chip8::storeKeyPressVal},
+      {0xF015, &Chip8::setTimer},
+      {0xF018, &Chip8::setTimer},
+      {0xF01E, &Chip8::addToIndex},
+      {0xF029, &Chip8::setIndexToSprite},
+      {0xF033, &Chip8::storeDecimal},
+      {0xF055, &Chip8::writeToMemory},
+      {0xF065, &Chip8::readToMemory},
+    };
+
+    std::map<char,unsigned short> key_chars = {
+        {'1',0x0},{'2',0x1},{'3',0x2},{'4',0x3},
+        {'q',0x4},{'w',0x5},{'e',0x6},{'r',0x7},
+        {'a',0x8},{'s',0x9},{'d',0xA},{'f',0xB},
+        {'q',0xC},{'w',0xD},{'e',0xE},{'r',0xF},
     };
 };
 
