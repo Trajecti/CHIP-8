@@ -1,7 +1,7 @@
 CC=gcc
 CXX=g++
 CXXFLAGS= -g -Wall -MMD
-SRCS=chip8.h chip8.cc
+SRCS=src/chip8.h src/chip8.cc
 OBJS=$(subst .cc,.o,$(SRCS))
 DEPENDS = ${OBJECTS:.o=.d}
 EXEC = chip8

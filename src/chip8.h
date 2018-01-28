@@ -1,6 +1,7 @@
 #ifndef CHIP8_H
 #define CHIP8_H
 #include <map>
+#include <deque>
 
 class Chip8;
 
@@ -9,14 +10,14 @@ typedef void (Chip8::*opFunc)(unsigned short);
 class Chip8 {
  public:
   void initialize();
-  opFunc decodeOpcode(unsigned short opcode);
+  unsigned short decodeOpcode(unsigned short opcode);
   void emulateCycle();
 
  private:
   const static int INITIAL_PC_VAL = 0x20;
   int drawFlag;
 
-  // CHIP-8 4K system memory map
+  // CHIP-8 4K system memory mappings
   // 0x000-0x1FF - Chip 8 interpreter (contains font set in emu)
   // 0x050-0x0A0 - Used for the built in 4x5 pixel font set (0-F)
   // 0x200-0xFFF - Program ROM and work RAM
@@ -47,10 +48,10 @@ class Chip8 {
   unsigned char delay_timer;
   unsigned char sound_timer;
 
-  // The Chip-8 has up to 16 levels of stack for
+  // The CHIP-8 has up to 16 levels of stack for
   //  the stack pointer(sp) to iterate subroutines through
   const static short STACK_SIZE = 16;
-  unsigned short c_stack[STACK_SIZE];
+  std::deque<unsigned short> c_stack;
   unsigned short sp;
 
   // The CHIP-8 has a HEX key pad from 0x0 to 0xF
@@ -61,10 +62,22 @@ class Chip8 {
   static unsigned char font_set[FONT_SET_LEN];
 
   void clearScreen(unsigned short opcode);
+  void returnFromSubroutine(unsigned short opcode);
+  void jumpAddress(unsigned short opcode);
+  void callAddress(unsigned short opcode);
+  void skip(unsigned short opcode);
+
   std::map<unsigned short, opFunc> opcode_to_instr_fn_map = {
-      {0x00E0, &Chip8::clearScreen}
+      {0x00E0, &Chip8::clearScreen},
+      {0x00EE, &Chip8::returnFromSubroutine},
+      {0x1000, &Chip8::jumpAddress},
+      {0x2000, &Chip8::callAddress},
+      {0x3000, &Chip8::skip},
+      {0x4000, &Chip8::skip},
+      {0x5000, &Chip8::skip},
     };
 };
+
 
 unsigned char Chip8::font_set[80] = {
     0xF0, 0x90, 0x90, 0x90, 0xF0,  // 0

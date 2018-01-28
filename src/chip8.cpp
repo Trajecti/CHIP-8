@@ -1,8 +1,10 @@
 #include "chip8.h"
+#include <iostream>
 
 int main() {
   Chip8 test;
   test.initialize();
+  //test.emulateCycle();
 }
 
 void Chip8::initialize() {
@@ -24,7 +26,7 @@ void Chip8::initialize() {
       V[i] = 0;
     }
     if (i < STACK_SIZE) {
-      c_stack[i] = 0;
+        c_stack[i] = 0;
     }
   }
 
@@ -38,30 +40,70 @@ void Chip8::initialize() {
   sound_timer = 0;
 }
 
-
-opFunc Chip8::decodeOpcode(unsigned short opcode) {
+unsigned short Chip8::decodeOpcode(unsigned short opcode) {
   switch (opcode & 0xF000) {
     case 0x0000:
-      switch (opcode & 0x000F) {
-        case 0x0000:
-          return opcode_to_instr_fn_map[0x00E0];
-          break;
-        case 0x000E:
-          return opcode_to_instr_fn_map[0x00EE];
-          break;
-      }
+      return opcode & 0xF0FF;
+    case 0x8000:
+      return opcode & 0xF00F;
+    case 0xE000:
+      return opcode & 0xF0FF;
+    case 0xF000:
+      return opcode & 0xF0FF;
+    default:
+      return opcode & 0xF000;
   };
 }
 
 void Chip8::emulateCycle() {
   // Fetch opcode
   opcode = memory[pc] << 8 | memory[pc + 1];
-  opFunc opcode_function = decodeOpcode(opcode);
+  opFunc opcode_function = opcode_to_instr_fn_map[decodeOpcode(opcode)];
   (this->*opcode_function)(opcode);
 }
 
 void Chip8::clearScreen(unsigned short) {
   for (int i = 0; i < NUM_PIXELS; ++i) {
-    gfx[i] = 0;
+      gfx[i] = 0;
   }
 }
+
+void Chip8::returnFromSubroutine(unsigned short) {
+    pc = c_stack.front();
+    c_stack.pop_front();
+    --sp;
+}
+
+
+void Chip8::jumpAddress(unsigned short opcode) {
+    unsigned short dest_address = opcode & 0x0FFF;
+    pc = dest_address;
+    return;
+}
+
+void Chip8::callAddress(unsigned short opcode) {
+    unsigned short subroutine_address = opcode & 0x0FFF;
+    ++sp;
+    c_stack.push_front(pc);
+    pc = subroutine_address;
+    return;
+}
+
+// If opcode leads with 0x3000, skip if equal otherwise
+//  if 0x4000, skip if not equal. If 0x5000, compare two
+//   registers and skip if equal.
+void Chip8::skip(unsigned short opcode) {
+    unsigned short register1 = opcode & 0x0F00 >> 2;
+    unsigned short register2 = opcode & 0x00F0 >> 1;
+    unsigned short value = opcode & 0x00FF;
+    bool skipIfEqual = ((opcode & 0xF000) == 0x3000);
+    bool compareRegisters = ((opcode & 0xF000) == 0x5000);
+    if (compareRegisters && (V[register1] == V[register2])) {
+        pc+=2;
+    } else if ((skipIfEqual && value == V[register1])
+        || (!skipIfEqual && value != V[register1])) {
+        pc+=2;
+    }
+    return;
+}
+
