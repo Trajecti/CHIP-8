@@ -1,4 +1,5 @@
 #include "chip8.h"
+#include <cstdlib>
 
 void Chip8::clearScreen(unsigned short) {
   for (int y = 0; y < ROW_PIXELS; ++y) {
