@@ -64,27 +64,27 @@ class Chip8 {
   const static short FONT_SET_LEN = 80;
   static unsigned char font_set[FONT_SET_LEN];
 
-  void clearScreen(unsigned short opcode);
-  void returnFromSubroutine(unsigned short opcode);
-  void jumpAddress(unsigned short opcode);
-  void callAddress(unsigned short opcode);
-  void skip(unsigned short opcode);
-  void loadToMemory(unsigned short opcode);
-  void addToRegister(unsigned short opcode);
-  void arithmeticalOperations(unsigned short opcode);
-  void setRegisterI(unsigned short opcode);
-  void jumpLinkRegister(unsigned short opcode);
-  void rand(unsigned short opcode);
-  void draw(unsigned short opcode);
-  void skipOnKeyPress(unsigned short opcode);
-  void storeKeyPressVal(unsigned short opcode);
-  void getDelayTimer(unsigned short opcode);
-  void setTimer(unsigned short opcode);
-  void addToIndex(unsigned short opcode);
-  void setIndexToSprite(unsigned short opcode);
-  void storeDecimal(unsigned short opcode);
-  void writeToMemory(unsigned short opcode);
-  void readToMemory(unsigned short opcode);
+  void clearScreen(unsigned short);
+  void returnFromSubroutine(unsigned short);
+  void jumpAddress(unsigned short);
+  void callAddress(unsigned short);
+  void skip(unsigned short);
+  void loadToMemory(unsigned short);
+  void addToRegister(unsigned short);
+  void arithmeticalOperations(unsigned short);
+  void setRegisterI(unsigned short);
+  void jumpLinkRegister(unsigned short);
+  void rand(unsigned short);
+  void draw(unsigned short);
+  void skipOnKeyPress(unsigned short);
+  void storeKeyPressVal(unsigned short);
+  void getDelayTimer(unsigned short);
+  void setTimer(unsigned short);
+  void addToIndex(unsigned short);
+  void setIndexToSprite(unsigned short);
+  void storeDecimal(unsigned short);
+  void writeToMemory(unsigned short);
+  void readToMemory(unsigned short);
 
   std::map<unsigned short, opFunc> opcode_to_instr_fn_map = {
       {0x00E0, &Chip8::clearScreen},
